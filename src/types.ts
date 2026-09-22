@@ -69,6 +69,7 @@ export const ExportedLabelTemplateSchema = z.object({
   timestamp: z.number().positive().optional(),
   id: z.string().optional(), // filled with localStorage key, not exported
   csv: CsvParamsSchema.optional(),
+  barcode: z.string().optional(),
 });
 
 const [firstTask, ...otherTasks] = printTaskNames;

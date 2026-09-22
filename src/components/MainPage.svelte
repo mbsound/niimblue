@@ -7,6 +7,8 @@
   import DebugStuff from "$/components/DebugStuff.svelte";
   import MdIcon from "$/components/basic/MdIcon.svelte";
 
+  import TemplateSelector from "$/components/designer-controls/TemplateSelector.svelte";
+
   // eslint-disable-next-line no-undef
   const appCommit = __APP_COMMIT__;
   // eslint-disable-next-line no-undef
@@ -19,13 +21,16 @@
 
 <div class="page-wrapper d-flex flex-column min-vh-100">
   <div class="container my-2 flex-grow-1">
-    <div class="row align-items-center mb-3">
-      <div class="col">
-        <h1 class="title">
-          <span class="niim">Niim</span><span class="blue">Blue{isStandalone ? "s" : ""}</span>
+    <div class="row align-items-center mb-3 g-2">
+      <div class="col-auto">
+        <h1 class="title mb-0">
+          <span class="niim">Niim</span><span class="blue">Bell</span>
         </h1>
       </div>
-      <div class="col-md-3">
+      <div class="col d-flex justify-content-start justify-content-md-center">
+        <TemplateSelector />
+      </div>
+      <div class="col-auto">
         <PrinterConnector />
       </div>
     </div>

@@ -6,7 +6,7 @@
   import { Barcode } from "$/fabric-object/barcode";
   import { QRCode } from "$/fabric-object/qrcode";
   import { iconCodepoints, type MaterialIcon } from "$/styles/mdi_icons";
-  import { appConfig, automation, connectionState, csvData, loadedFonts } from "$/stores";
+  import { appConfig, automation, connectionState, csvData, loadedFonts, activeTemplateRequest, currentLabelExporter } from "$/stores";
   import {
     type ExportedLabelTemplate,
     type FabricJson,
@@ -153,6 +153,7 @@
   const onUpdateLabelProps = (newProps: LabelProps) => {
     labelProps = newProps;
     fabricCanvas!.setDimensions(labelProps.size);
+    fabricCanvas!.setLabelProps(labelProps);
     fabricCanvas!.virtualZoom(fabricCanvas!.getVirtualZoom());
     try {
       LocalStoragePersistence.saveLastLabelProps(labelProps);
@@ -279,6 +280,14 @@
     appConfig.update((cfg) => ({ ...cfg, gridEnabled: newVal }));
     fabricCanvas?.setGridEnabled(newVal);
   };
+
+  $effect(() => {
+    if ($activeTemplateRequest && fabricCanvas) {
+      const tpl = $activeTemplateRequest;
+      activeTemplateRequest.set(undefined);
+      loadLabelData(tpl).then(() => undo.push(fabricCanvas!, labelProps));
+    }
+  });
 
   const loadLabelFromUrl = async () => {
     try {
@@ -446,9 +455,12 @@
         }
       }
     }
+
+    currentLabelExporter.set(exportCurrentLabel);
   });
 
   onDestroy(() => {
+    currentLabelExporter.set(undefined);
     fabricCanvas!.dispose();
     window.removeEventListener("hashchange", loadLabelFromUrl);
   });

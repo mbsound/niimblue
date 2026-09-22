@@ -1,4 +1,4 @@
-import type { IdentifiedRoll, LabelProps, LabelShape } from "$/types";
+import type { ExportedLabelTemplate, IdentifiedRoll, LabelProps, LabelShape } from "$/types";
 import type { PrintDirection, RfidInfo } from "@mmote/niimbluelib";
 
 const RFID_CACHE_KEY = "niimblue_rfid_roll_cache";
@@ -136,14 +136,18 @@ export class RfidIdentifier {
     const dim2 = roll.height;
 
     const tapeWidth = Math.min(dim1, dim2);
-    const feedLength = Math.max(dim1, dim2);
+    let feedLength = Math.max(dim1, dim2);
+
+    if (roll.isCable && roll.cableLength) {
+      feedLength += roll.cableLength;
+    }
 
     let canvasWidthMm = feedLength;
     let canvasHeightMm = tapeWidth;
 
     if (printDirection === "top") {
-      canvasWidthMm = feedLength;
-      canvasHeightMm = tapeWidth;
+      canvasWidthMm = tapeWidth;
+      canvasHeightMm = feedLength;
     } else {
       canvasWidthMm = feedLength;
       canvasHeightMm = tapeWidth;
@@ -189,6 +193,96 @@ export class RfidIdentifier {
       mirror,
       tailLength,
       tailPos,
+    };
+  }
+
+  public static createDefaultTemplateForRoll(
+    roll: IdentifiedRoll,
+    printDirection: PrintDirection,
+    dpmm: number = 8
+  ): ExportedLabelTemplate {
+    const labelProps = this.calculateLabelProps(roll, printDirection, dpmm) as LabelProps;
+
+    const width = labelProps.size.width;
+    const height = labelProps.size.height;
+    const tailLength = labelProps.tailLength ?? 0;
+
+    let targetX = width / 2;
+    let targetY = height / 2;
+    let textWidth = Math.min(200, width * 0.8);
+
+    if (labelProps.split === "vertical") {
+      const flagWidth = width - tailLength;
+      const sideAWidth = flagWidth / 2;
+      const startX = labelProps.tailPos === "left" ? tailLength : 0;
+      targetX = startX + sideAWidth / 2;
+      targetY = height / 2;
+      textWidth = Math.min(160, sideAWidth * 0.85);
+    }
+
+    const defaultObject = {
+      type: "Textbox",
+      version: "6.5.4",
+      originX: "center",
+      originY: "center",
+      left: Math.round(targetX),
+      top: Math.round(targetY),
+      width: Math.round(textWidth),
+      height: 28,
+      fill: "black",
+      stroke: null,
+      strokeWidth: 1,
+      strokeDashArray: null,
+      strokeLineCap: "butt",
+      strokeDashOffset: 0,
+      strokeLineJoin: "miter",
+      strokeUniform: false,
+      strokeMiterLimit: 4,
+      scaleX: 1,
+      scaleY: 1,
+      angle: 0,
+      flipX: false,
+      flipY: false,
+      opacity: 1,
+      shadow: null,
+      visible: true,
+      backgroundColor: "",
+      fillRule: "nonzero",
+      paintFirst: "fill",
+      globalCompositeOperation: "source-over",
+      skewX: 0,
+      skewY: 0,
+      fontFamily: "Noto Sans Variable",
+      fontWeight: "normal",
+      fontSize: 22,
+      text: roll.isCable ? "Cable Tag" : "Text",
+      underline: false,
+      overline: false,
+      linethrough: false,
+      textAlign: "center",
+      fontStyle: "normal",
+      lineHeight: 1,
+      textBackgroundColor: "",
+      charSpacing: 0,
+      styles: [],
+      direction: "ltr",
+      path: null,
+      pathStartOffset: 0,
+      pathSide: "left",
+      pathAlign: "baseline",
+      minWidth: 20,
+      splitByGrapheme: false,
+    };
+
+    return {
+      barcode: roll.barcode,
+      title: roll.name,
+      label: labelProps,
+      canvas: {
+        version: "6.5.4",
+        objects: [defaultObject as any],
+      },
+      timestamp: Date.now(),
     };
   }
 }

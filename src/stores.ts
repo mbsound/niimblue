@@ -12,6 +12,8 @@ import {
   type ConnectionState,
   type ConnectionType,
   type IdentifiedRoll,
+  type ExportedLabelTemplate,
+  ExportedLabelTemplateSchema,
 } from "$/types";
 import {
   NiimbotBluetoothClient,
@@ -49,6 +51,14 @@ export const printerInfo = writable<PrinterInfo>();
 export const rfidInfo = writable<RfidInfo | undefined>();
 export const ribbonRfidInfo = writable<RfidInfo | undefined>();
 export const identifiedRoll = writable<IdentifiedRoll | undefined>();
+export const detectedTemplates = writablePersisted<ExportedLabelTemplate[]>(
+  "niimbell_detected_templates",
+  z.array(ExportedLabelTemplateSchema),
+  [],
+);
+export const activeTemplateRequest = writable<ExportedLabelTemplate | undefined>();
+export const currentRollTemplate = writable<ExportedLabelTemplate | undefined>();
+export const currentLabelExporter = writable<(() => ExportedLabelTemplate) | undefined>();
 export const printerMeta = writable<PrinterModelMeta | undefined>();
 export const heartbeatFails = writable<number>(0);
 export const csvData = writablePersisted<CsvParams>("csv_params", CsvParamsSchema, { data: CSV_DEFAULT });
@@ -82,9 +92,28 @@ export const refreshRfidInfo = () => {
         if (conf.rfidAutoIdentify !== false) {
           const roll = await RfidIdentifier.identify(info.barCode, info);
           identifiedRoll.set(roll);
+
+          if (roll) {
+            const templates = get(detectedTemplates);
+            let tpl = templates.find((t) => t.barcode === roll.barcode);
+            const meta = get(printerMeta);
+            const printDir = meta?.printDirection ?? "left";
+
+            if (!tpl) {
+              tpl = RfidIdentifier.createDefaultTemplateForRoll(roll, printDir);
+              detectedTemplates.update((list) => [...list, tpl!]);
+              Toasts.message(`Created new template for ${roll.name}`);
+            } else {
+              Toasts.message(`Recalled template for ${roll.name}`);
+            }
+
+            currentRollTemplate.set(tpl);
+            activeTemplateRequest.set(tpl);
+          }
         }
       } else {
         identifiedRoll.set(undefined);
+        currentRollTemplate.set(undefined);
       }
     })
     .catch(console.error);
