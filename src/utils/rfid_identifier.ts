@@ -20,6 +20,9 @@ interface CachedRoll {
   paperType: number;
   paperTypeName?: string;
   previewImage?: string;
+  isCable?: boolean;
+  cableLength?: number;
+  cableDirection?: number;
 }
 
 const getCache = (): Record<string, CachedRoll> => {
@@ -89,6 +92,9 @@ export class RfidIdentifier {
             paperType: Number(d.paperType) || 1,
             paperTypeName: PAPER_TYPE_NAMES[Number(d.paperType)] || `Type ${d.paperType}`,
             previewImage: d.previewImage || d.backgroundImage,
+            isCable: Boolean(d.isCable),
+            cableLength: Number(d.cableLength) || 0,
+            cableDirection: Number(d.cableDirection) || 0,
           };
 
           saveCache(cleanBarcode, rollData);
@@ -119,6 +125,7 @@ export class RfidIdentifier {
    * Computes canvas LabelProps dimensions based on printer orientation.
    * D110/D11 uses "left" print direction (height is along printhead 12/15mm, width is feed 30/40mm).
    * B1/B21 uses "top" print direction (width is along printhead 50mm, height is feed 30mm).
+   * For cable labels, sets vertical fold split and mirrored flip so both sides match.
    */
   public static calculateLabelProps(
     roll: IdentifiedRoll,
@@ -154,6 +161,22 @@ export class RfidIdentifier {
 
     const shape: LabelShape = dim1 === dim2 ? "circle" : "rect";
 
+    let split: "none" | "vertical" | "horizontal" = "none";
+    let splitParts = 2;
+    let mirror: "none" | "flip" | "copy" = "none";
+    let tailLength = 0;
+    let tailPos: "right" | "bottom" | "left" | "top" = "right";
+
+    if (roll.isCable) {
+      split = "vertical";
+      splitParts = 2;
+      mirror = "flip"; // Symmetrical fold-over mirroring!
+      if (roll.cableLength) {
+        tailLength = Math.floor(roll.cableLength * dpmm);
+        tailPos = roll.cableDirection === 1 ? "right" : "left";
+      }
+    }
+
     return {
       printDirection,
       size: {
@@ -161,6 +184,11 @@ export class RfidIdentifier {
         height: heightPx,
       },
       shape,
+      split,
+      splitParts,
+      mirror,
+      tailLength,
+      tailPos,
     };
   }
 }

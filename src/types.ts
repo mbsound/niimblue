@@ -113,6 +113,9 @@ export interface IdentifiedRoll {
   allPaper?: number;
   usedPaper?: number;
   remainingPaper?: number;
+  isCable?: boolean;
+  cableLength?: number;
+  cableDirection?: number;
 }
 
 export const AppConfigSchema = z.object({

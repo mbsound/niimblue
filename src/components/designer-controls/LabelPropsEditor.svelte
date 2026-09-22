@@ -182,6 +182,11 @@
     height = Math.min($identifiedRoll.width, $identifiedRoll.height);
     printDirection = printDir;
     shape = computed.shape ?? ($identifiedRoll.width === $identifiedRoll.height ? "circle" : "rect");
+    split = computed.split ?? "none";
+    splitParts = computed.splitParts ?? 2;
+    mirror = computed.mirror ?? "none";
+    tailLength = Math.round((computed.tailLength ?? 0) / dpmm);
+    tailPos = computed.tailPos ?? "right";
 
     onChange({
       ...labelProps,
@@ -189,6 +194,11 @@
       size: computed.size!,
       printDirection: computed.printDirection!,
       shape,
+      split,
+      splitParts,
+      mirror,
+      tailLength: computed.tailLength ?? 0,
+      tailPos,
     });
     Toasts.message(`Applied roll: ${$identifiedRoll.name} (${$identifiedRoll.width}x${$identifiedRoll.height}mm)`);
   };
