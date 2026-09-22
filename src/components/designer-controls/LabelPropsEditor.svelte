@@ -10,7 +10,8 @@
     type TailPosition,
   } from "$/types";
   import LabelPresetsBrowser from "$/components/designer-controls/LabelPresetsBrowser.svelte";
-  import { printerMeta } from "$/stores";
+  import { printerMeta, identifiedRoll } from "$/stores";
+  import { RfidIdentifier } from "$/utils/rfid_identifier";
   import { tr } from "$/utils/i18n";
   import { DEFAULT_LABEL_PRESETS } from "$/defaults";
   import { onMount, tick } from "svelte";
@@ -170,6 +171,28 @@
     }
   };
 
+  const applyIdentifiedRoll = () => {
+    if (!$identifiedRoll) return;
+    const printDir = $printerMeta?.printDirection ?? printDirection;
+    const computed = RfidIdentifier.calculateLabelProps($identifiedRoll, printDir, dpmm);
+
+    unit = "mm";
+    prevUnit = "mm";
+    width = Math.max($identifiedRoll.width, $identifiedRoll.height);
+    height = Math.min($identifiedRoll.width, $identifiedRoll.height);
+    printDirection = printDir;
+    shape = computed.shape ?? ($identifiedRoll.width === $identifiedRoll.height ? "circle" : "rect");
+
+    onChange({
+      ...labelProps,
+      ...computed,
+      size: computed.size!,
+      printDirection: computed.printDirection!,
+      shape,
+    });
+    Toasts.message(`Applied roll: ${$identifiedRoll.name} (${$identifiedRoll.width}x${$identifiedRoll.height}mm)`);
+  };
+
   const onFlip = () => {
     let widthTmp = width;
     width = height;
@@ -296,6 +319,28 @@
         {/if}
         <button class="btn btn-sm" onclick={fillWithCurrentParams}><MdIcon icon="arrow_downward" /></button>
       </div>
+
+      {#if $identifiedRoll}
+        <div class="alert alert-primary py-2 px-2 mb-2 d-flex align-items-center justify-content-between">
+          <div class="overflow-hidden me-2">
+            <div class="fw-bold small text-truncate d-flex align-items-center gap-1">
+              <MdIcon icon="nfc" /> {$identifiedRoll.name}
+            </div>
+            <div class="text-secondary" style="font-size: 0.75rem;">
+              {$identifiedRoll.width} &times; {$identifiedRoll.height} mm
+              {#if $identifiedRoll.paperTypeName}
+                &bull; {$identifiedRoll.paperTypeName}
+              {/if}
+              {#if $identifiedRoll.remainingPaper !== undefined}
+                &bull; {$identifiedRoll.remainingPaper} left
+              {/if}
+            </div>
+          </div>
+          <button class="btn btn-sm btn-primary text-nowrap py-1 px-2" onclick={applyIdentifiedRoll}>
+            <MdIcon icon="aspect_ratio" /> {$tr("params.rfid.apply")}
+          </button>
+        </div>
+      {/if}
 
       <LabelPresetsBrowser
         class="mb-1"

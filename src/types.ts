@@ -102,6 +102,19 @@ export const AutomationPropsSchema = z.object({
   startPrint: z.enum(["after_connect", "immediately"]).optional(),
 });
 
+export interface IdentifiedRoll {
+  barcode: string;
+  name: string;
+  width: number; // in mm
+  height: number; // in mm
+  paperType: number;
+  paperTypeName?: string;
+  previewImage?: string;
+  allPaper?: number;
+  usedPaper?: number;
+  remainingPaper?: number;
+}
+
 export const AppConfigSchema = z.object({
   /** Keep image aspect ration when using "fit" button */
   fitMode: z.enum(["stretch", "ratio_min", "ratio_max"]),
@@ -109,6 +122,8 @@ export const AppConfigSchema = z.object({
   iconListMode: z.enum(["user", "pack", "both"]),
   packetIntervalMs: z.number().gte(0).optional(),
   gridEnabled: z.boolean().optional(),
+  rfidAutoIdentify: z.boolean().default(true).optional(),
+  rfidAutoApplySize: z.boolean().default(false).optional(),
 });
 
 export const UserIconSchema = z.object({

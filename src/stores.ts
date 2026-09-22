@@ -11,6 +11,7 @@ import {
   type AutomationProps,
   type ConnectionState,
   type ConnectionType,
+  type IdentifiedRoll,
 } from "$/types";
 import {
   NiimbotBluetoothClient,
@@ -32,6 +33,7 @@ import { LocalStoragePersistence, writablePersisted } from "$/utils/persistence"
 import { APP_CONFIG_DEFAULTS, CSV_DEFAULT, OBJECT_DEFAULTS_TEXT } from "$/defaults";
 import z from "zod";
 import { FileUtils } from "$/utils/file_utils";
+import { RfidIdentifier } from "$/utils/rfid_identifier";
 
 export const fontCache = writable<string[]>([OBJECT_DEFAULTS_TEXT.fontFamily]);
 export const appConfig = writablePersisted<AppConfig>("config", AppConfigSchema, APP_CONFIG_DEFAULTS);
@@ -46,6 +48,7 @@ export const heartbeatData = writable<HeartbeatData>();
 export const printerInfo = writable<PrinterInfo>();
 export const rfidInfo = writable<RfidInfo | undefined>();
 export const ribbonRfidInfo = writable<RfidInfo | undefined>();
+export const identifiedRoll = writable<IdentifiedRoll | undefined>();
 export const printerMeta = writable<PrinterModelMeta | undefined>();
 export const heartbeatFails = writable<number>(0);
 export const csvData = writablePersisted<CsvParams>("csv_params", CsvParamsSchema, { data: CSV_DEFAULT });
@@ -70,7 +73,21 @@ export const refreshRfidInfo = () => {
     return;
   }
 
-  client.abstraction.rfidInfo().then(rfidInfo.set).catch(console.error);
+  client.abstraction
+    .rfidInfo()
+    .then(async (info) => {
+      rfidInfo.set(info);
+      if (info && info.tagPresent && info.barCode) {
+        const conf = get(appConfig);
+        if (conf.rfidAutoIdentify !== false) {
+          const roll = await RfidIdentifier.identify(info.barCode, info);
+          identifiedRoll.set(roll);
+        }
+      } else {
+        identifiedRoll.set(undefined);
+      }
+    })
+    .catch(console.error);
 
   client.abstraction
     .rfidInfo2()
@@ -127,6 +144,9 @@ export const initClient = (connectionType: ConnectionType) => {
         connectedPrinterName.set("");
         printerInfo.set({});
         printerMeta.set(undefined);
+        rfidInfo.set(undefined);
+        ribbonRfidInfo.set(undefined);
+        identifiedRoll.set(undefined);
       });
 
       newClient.on("heartbeat", (e) => {

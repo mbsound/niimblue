@@ -12,7 +12,9 @@
     automation,
     rfidInfo,
     ribbonRfidInfo,
+    identifiedRoll,
     refreshRfidInfo,
+    appConfig,
   } from "$/stores";
   import type { ConnectionType } from "$/types";
   import { tr } from "$/utils/i18n";
@@ -149,6 +151,54 @@
           </ul>
         </div>
       {/if}
+
+      {#if $identifiedRoll}
+        <div class="card bg-body-tertiary my-2 p-2 border-primary">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <strong class="text-primary d-flex align-items-center gap-1 small">
+              <MdIcon icon="nfc" /> {$tr("connector.rfid.identified_roll")}
+            </strong>
+            <span class="badge bg-primary">{$identifiedRoll.width} &times; {$identifiedRoll.height} mm</span>
+          </div>
+          <div class="small fw-bold text-truncate">{$identifiedRoll.name}</div>
+          <div class="text-secondary small">
+            {$identifiedRoll.paperTypeName ?? "Standard"}
+          </div>
+          {#if $identifiedRoll.allPaper !== undefined && $identifiedRoll.allPaper > 0}
+            <div class="mt-2">
+              <div class="d-flex justify-content-between text-secondary small mb-1">
+                <span>{$tr("connector.rfid.remaining")}:</span>
+                <strong>{$identifiedRoll.remainingPaper ?? "-"} / {$identifiedRoll.allPaper}</strong>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div
+                  class="progress-bar bg-success"
+                  role="progressbar"
+                  style="width: {Math.round((($identifiedRoll.remainingPaper ?? 0) / $identifiedRoll.allPaper) * 100)}%">
+                </div>
+              </div>
+            </div>
+          {/if}
+        </div>
+      {/if}
+
+      <div class="form-check form-switch my-2 px-4 small">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="rfidAutoIdentify"
+          bind:checked={$appConfig.rfidAutoIdentify}
+          onchange={() => {
+            if ($appConfig.rfidAutoIdentify) {
+              refreshRfidInfo();
+            } else {
+              identifiedRoll.set(undefined);
+            }
+          }} />
+        <label class="form-check-label" for="rfidAutoIdentify">
+          {$tr("connector.rfid.auto_identify")}
+        </label>
+      </div>
 
       {#if $rfidInfo}
         <button
